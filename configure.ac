@@ -1877,6 +1877,10 @@ fi
 BUILD_CAPTURE_WCH_BLE_ANALYZER_PRO=1
 DATASOURCE_BINS="$DATASOURCE_BINS \$(CAPTURE_WCH_BLE_ANALYZER_PRO)"
 
+# Cell modem AT capture — depends only on serial (POSIX termios)
+BUILD_CAPTURE_CELL_AT=1
+DATASOURCE_BINS="$DATASOURCE_BINS \$(CAPTURE_CELL_AT)"
+
 if test "$darwin" = "yes"; then
 	suidgroup="staff"
     BUILD_CAPTURE_OSX_COREWLAN=1
@@ -2046,6 +2050,7 @@ AC_SUBST(BUILD_CAPTURE_HAK5_COCONUT)
 AC_SUBST(BUILD_CAPTURE_SERIAL_RADVIEW)
 AC_SUBST(BUILD_CAPTURE_USB_RADIACODE)
 AC_SUBST(BUILD_CAPTURE_ANTSDR_DRONEID)
+AC_SUBST(BUILD_CAPTURE_CELL_AT)
 
 #AC_SUBST(CPPFLAGS)
 #AC_SUBST(CFLAGS)
@@ -2080,6 +2085,7 @@ AC_CONFIG_FILES([
     capture_radiacode/Makefile
     capture_antsdr_droneid/Makefile
     capture_wch_ble_analyzer_pro/Makefile
+    capture_cell_at/Makefile
     ])
 AC_OUTPUT
 

@@ -93,6 +93,7 @@
 #include "datasource_antsdr_droneid.h"
 #include "datasource_catsniffer_zigbee.h"
 #include "datasource_wch_ble_analyzer_pro.h"
+#include "datasource_cell_at.h"
 
 #include "logtracker.h"
 #include "kis_ppilogfile.h"
@@ -126,6 +127,7 @@
 #include "phy_btle.h"
 #include "phy_802154.h"
 #include "phy_radiation.h"
+#include "phy_cell.h"
 
 #include "ipctracker_v2.h"
 #include "manuf.h"
@@ -905,6 +907,7 @@ int main(int argc, char *argv[], char *envp[]) {
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_adsb_phy()));
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_802154_phy()));
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_radiation_phy()));
+    devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_cellular_phy()));
 
     if (globalregistry->fatal_condition) 
         SpindownKismet();
@@ -938,6 +941,7 @@ int main(int argc, char *argv[], char *envp[]) {
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_antsdr_droneid_builder()));
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_catsniffer_zigbee_builder()));
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_wch_ble_pro_builder()));
+    datasourcetracker->register_datasource(shared_datasource_builder(new datasource_cell_at_builder()));
 
     // Virtual sources get a special meta-builder
     datasource_virtual_builder::create_virtualbuilder();
