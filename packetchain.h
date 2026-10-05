@@ -36,8 +36,9 @@
 #include <map>
 #include <functional>
 #include <queue>
+#include <atomic>
+#include <chrono>
 #include <thread>
-#include <unordered_set>
 
 #include "eventbus.h"
 #include "globalregistry.h"
@@ -124,6 +125,16 @@ public:
 
     void start_processing();
 
+    // Finish every packet already queued, then stop the packet threads.
+    // Called at shutdown BEFORE the logs close, so what the sources delivered
+    // is processed and logged instead of abandoned.  Bounded: past `budget` the
+    // threads stop after the packet in hand and what is left is reported, not
+    // silently dropped.  Idempotent; returns how many packets were abandoned.
+    size_t drain_and_stop(std::chrono::milliseconds budget);
+
+    // The same, with the budget from `kismet_packet_drain_ms` (default 2000)
+    size_t drain_and_stop();
+
     int register_packet_component(std::string in_component);
     std::string fetch_packet_component_name(int in_id);
 
@@ -187,63 +198,31 @@ protected:
     std::unordered_map<std::string, int> component_str_map;
     std::map<int, std::string> component_id_map;
 
-    // All handler chains.  A snapshot is never modified once it is published; registering or
-    // removing a handler publishes a new one.  Threads running packets keep a reference to the
-    // snapshot they are using, so a removed link stays valid until they are done with it.
-    struct pc_chains {
-        uint64_t generation = 0;
+    // Core chain components
+    std::vector<packet_chain::pc_link*> postcap_chain;
+    std::vector<packet_chain::pc_link*> llcdissect_chain;
+    std::vector<packet_chain::pc_link*> decrypt_chain;
+    std::vector<packet_chain::pc_link*> datadissect_chain;
+    std::vector<packet_chain::pc_link*> classifier_chain;
+	std::vector<packet_chain::pc_link*> tracker_chain;
+    std::vector<packet_chain::pc_link*> logging_chain;
 
-        std::vector<pc_link> postcap;
-        std::vector<pc_link> llcdissect;
-        std::vector<pc_link> decrypt;
-        std::vector<pc_link> datadissect;
-        std::vector<pc_link> classifier;
-        std::vector<pc_link> tracker;
-        std::vector<pc_link> logging;
-    };
+    // Updated chain components
+    std::vector<packet_chain::pc_link*> postcap_chain_new;
+    std::vector<packet_chain::pc_link*> llcdissect_chain_new;
+    std::vector<packet_chain::pc_link*> decrypt_chain_new;
+    std::vector<packet_chain::pc_link*> datadissect_chain_new;
+    std::vector<packet_chain::pc_link*> classifier_chain_new;
+	std::vector<packet_chain::pc_link*> tracker_chain_new;
+    std::vector<packet_chain::pc_link*> logging_chain_new;
 
-    using pc_chains_ptr = std::shared_ptr<const pc_chains>;
-
-    // Reference to a chain snapshot held by the current thread; remove_handler() does not
-    // wait for snapshots held by the calling thread itself
-    class pc_chains_ref {
-    public:
-        pc_chains_ref() = default;
-        pc_chains_ref(const pc_chains_ref&) = delete;
-        pc_chains_ref& operator=(const pc_chains_ref&) = delete;
-        ~pc_chains_ref() { reset(); }
-
-        void set(pc_chains_ptr in_chains);
-        void reset();
-
-        const pc_chains *get() const { return chains.get(); }
-        const pc_chains *operator->() const { return chains.get(); }
-
-    private:
-        pc_chains_ptr chains;
-    };
-
-    // Current snapshot, protected by packetchain_mutex
-    pc_chains_ptr chains;
-    // Generation of the current snapshot, so packet threads can check it without locking
-    std::atomic<uint64_t> chains_generation;
-
-    pc_chains_ptr fetch_chains();
-    static std::vector<pc_link> *select_chain(pc_chains *in_chains, int in_chain);
-
-    // Publish a new snapshot; must hold packetchain_mutex
-    void publish_chains(std::shared_ptr<pc_chains> in_chains);
-
-    int remove_int_handler(const std::function<bool (const pc_link&)>& in_match, int in_chain);
-
-    // Wait until no other thread is still running a replaced snapshot
-    void wait_for_retired_chains();
-
-    std::mutex retired_mutex;
-    // Replaced snapshots which may still be in use
-    std::vector<std::weak_ptr<const pc_chains>> retired_chains;
-    // Snapshots held by threads currently waiting in remove_handler()
-    std::unordered_multiset<const void *> waiting_chains;
+    bool postcap_chain_update;
+    bool llcdissect_chain_update;
+    bool decrypt_chain_update;
+    bool datadissect_chain_update;
+    bool classifier_chain_update;
+    bool tracker_chain_update;
+    bool logging_chain_update;
 
     // Packet component mutex
     mutable kis_shared_mutex packetcomp_mutex;
@@ -254,12 +233,14 @@ protected:
     struct packet_thread {
         std::thread packet_thread;
         moodycamel::BlockingConcurrentQueue<std::shared_ptr<kis_packet>> packet_queue;
+        std::atomic<bool> exited{false};
     };
 
     packet_thread **packet_threads;
     size_t n_packet_threads;
 
-    bool packetchain_shutdown;
+    std::atomic<bool> packetchain_shutdown;
+    std::atomic<bool> drain_started{false};
 
     // Warning and discard levels for packet queue being full
     unsigned int packet_queue_warning, packet_queue_drop;
