@@ -1,0 +1,70 @@
+[
+  {
+    "rat": "LTE",
+    "pci": 111,
+    "earfcn": 2600,
+    "band": 5,
+    "duplex": "FDD",
+    "prov": {
+      "src": "diag",
+      "origin": "0xB193",
+      "imei": "000000000000000",
+      "log_tick": 1000.0
+    },
+    "rsrp": -85.0,
+    "rsrq": -10.0,
+    "observation_type": "serving",
+    "is_serving": true
+  },
+  {
+    "rat": "LTE",
+    "pci": 222,
+    "earfcn": 2600,
+    "band": 5,
+    "duplex": "FDD",
+    "prov": {
+      "src": "diag",
+      "origin": "0xB193",
+      "imei": "000000000000000",
+      "log_tick": 1001.0
+    },
+    "rsrp": -97.5,
+    "rsrq": -12.5,
+    "observation_type": "serving",
+    "is_serving": true
+  },
+  {
+    "rat": "LTE",
+    "pci": 333,
+    "earfcn": 2600,
+    "band": 5,
+    "duplex": "FDD",
+    "prov": {
+      "src": "diag",
+      "origin": "0xB193",
+      "imei": "000000000000000",
+      "log_tick": 1002.0
+    },
+    "rsrp": -105.25,
+    "rsrq": -14.75,
+    "observation_type": "serving",
+    "is_serving": true
+  },
+  {
+    "rat": "LTE",
+    "pci": 444,
+    "earfcn": 900,
+    "band": 2,
+    "duplex": "FDD",
+    "prov": {
+      "src": "diag",
+      "origin": "0xB193",
+      "imei": "000000000000000",
+      "log_tick": 1003.0
+    },
+    "rsrp": -70.75,
+    "rsrq": -8.25,
+    "observation_type": "serving",
+    "is_serving": true
+  }
+]
