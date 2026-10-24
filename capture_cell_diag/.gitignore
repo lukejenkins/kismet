@@ -1,0 +1,6 @@
+# celltools `replay-gate-build` output: the NATIVE=1 and baseline helper copies.
+/build-replay-gate/
+# standalone.mk `check-native` output: the NATIVE=1 helper, its objects and tests.
+/build-native/
+# The replay-golden driver (make replay-ndjson); built, not committed.
+/celldiag_replay_ndjson

@@ -95,6 +95,8 @@
 #include "datasource_catsniffer_zigbee.h"
 #include "datasource_sniffle_ble.h"
 #include "datasource_wch_ble_analyzer_pro.h"
+#include "datasource_cell_at.h"
+#include "datasource_cell_diag.h"
 
 #include "logtracker.h"
 #include "kis_ppilogfile.h"
@@ -129,6 +131,7 @@
 #include "phy_btle.h"
 #include "phy_802154.h"
 #include "phy_radiation.h"
+#include "phy_cell.h"
 
 #include "ipctracker_v2.h"
 #include "manuf.h"
@@ -199,6 +202,13 @@ void SpindownKismet() {
     // shutdown everything
     globalregistry->shutdown_deferred();
     globalregistry->spindown = 1;
+
+    // The packet threads do not stop on spindown; the log tracker
+    // normally drained and stopped them above, and this is a no-op then.  Stop
+    // them here regardless, before the globals they use are torn down.
+    auto packetchain = Globalreg::fetch_global_as<packet_chain>();
+    if (packetchain != nullptr)
+        packetchain->drain_and_stop();
 
     // Start a short shutdown cycle for 2 seconds
     if (daemonize == 0)
@@ -565,7 +575,16 @@ int main(int argc, char *argv[], char *envp[]) {
         if (r < 0) break;
 
         if (r == 'v') {
-            printf("Kismet %s.%s.%s-%s\n", VERSION_MAJOR, VERSION_MINOR, VERSION_TINY, VERSION_GIT_COMMIT);
+            /* The fork name, not the bare "Kismet" banner: this server is the
+             * AT+DIAG cell-PHY fork, and `kismet --version` is the first thing
+             * anyone runs to answer "what am I about to drive with?".
+             *
+             * Byte-for-byte the same spelling the capture helpers print and
+             * /system/status.json reports -- upstream's banner put a space here
+             * where every other site uses '-', and two spellings of one version
+             * invite confusion. */
+            printf("%s-%s.%s.%s-%s\n", VERSION_POC_NAME, VERSION_MAJOR, VERSION_MINOR,
+                    VERSION_TINY, VERSION_GIT_COMMIT);
             exit(1);
         } else if (r == 'h') {
             usage(argv[0]);
@@ -909,6 +928,7 @@ int main(int argc, char *argv[], char *envp[]) {
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_adsb_phy()));
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_802154_phy()));
     devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_radiation_phy()));
+    devicetracker->register_phy_handler(dynamic_cast<kis_phy_handler *>(new kis_cellular_phy()));
 
     if (globalregistry->fatal_condition) 
         SpindownKismet();
@@ -944,6 +964,8 @@ int main(int argc, char *argv[], char *envp[]) {
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_catsniffer_zigbee_builder()));
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_sniffle_ble_builder()));
     datasourcetracker->register_datasource(shared_datasource_builder(new datasource_wch_ble_pro_builder()));
+    datasourcetracker->register_datasource(shared_datasource_builder(new datasource_cell_at_builder()));
+    datasourcetracker->register_datasource(shared_datasource_builder(new datasource_cell_diag_builder()));
 
     // Virtual sources get a special meta-builder
     datasource_virtual_builder::create_virtualbuilder();

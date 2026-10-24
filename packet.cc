@@ -44,6 +44,7 @@ kis_packet::kis_packet() {
     checksum_valid = false;
 	filtered = 0;
     duplicate = 0;
+    dedupe_exempt = false;
     hash = 0;
 
     assignment_id = 0;
@@ -73,6 +74,7 @@ void kis_packet::reset() {
     checksum_valid = false;
     filtered = 0;
     duplicate = 0;
+    dedupe_exempt = false;
 
     common_info.reset();
 
